@@ -1,0 +1,1 @@
+include!("perfetto.protos.rs");
