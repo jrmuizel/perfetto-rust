@@ -18,8 +18,7 @@ fn main() {
     file.read_to_end(&mut buffer).unwrap();
     let trace = Trace::decode(buffer.as_slice()).unwrap();
     //dbg!(&trace);
-    let mut boot_time = 0;
-    let mut mono_time = 0;
+
     let mut chrome_time = 0;
     let mut current_chrome_time = 0;
     let mut boot_to_mono = 0;
@@ -28,6 +27,7 @@ fn main() {
     let mut ftrace_events = Vec::new();
     let mut event_names = HashMap::new();
     let mut track_uuid = 0;
+    let mut first = true;
     
     for packet in trace.packet {
         if let Some(trace_packet_defaults) = packet.trace_packet_defaults {
@@ -47,6 +47,8 @@ fn main() {
             }
             match data {
                 ClockSnapshot(clock_snapshot) => {
+                    let mut boot_time = 0;
+                    let mut mono_time = 0; 
                     for clock in clock_snapshot.clocks {
                         match clock.clock_id.unwrap() {
                             6 => boot_time = clock.timestamp.unwrap(),
@@ -61,6 +63,9 @@ fn main() {
                             },
                             _ => (),
                         }
+                    }
+                    // only compute the difference if we have both
+                    if boot_time != 0 && mono_time != 0 {
                         boot_to_mono = boot_time - mono_time;
                     }
                 },
