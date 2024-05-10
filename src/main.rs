@@ -153,8 +153,11 @@ fn main() {
                                 state.push((timestamp, phase, msg));
                             },
                             'E' => {
-                                let (start, _, msg) = state.pop().unwrap();
-                                println!("{} {} {} {}", pid, start - boot_to_mono, timestamp - boot_to_mono, msg);
+                                if let Some((start, _, msg)) = state.pop() {
+                                    println!("{} {} {} {}", pid, start - boot_to_mono, timestamp - boot_to_mono, msg);
+                                } else {
+                                    eprintln!("missing start for {}", timestamp)
+                                }
                             },
                             _ => (),
                         }
