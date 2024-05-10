@@ -54,6 +54,9 @@ fn main() {
                             64 => {
                                 assert!(clock.is_incremental());
                                 chrome_time = clock.timestamp.unwrap();
+                                if chrome_time == boot_time {
+                                    chrome_time = chrome_time - boot_to_mono;
+                                }
                                 current_chrome_time = chrome_time;
                             },
                             _ => (),
@@ -104,7 +107,6 @@ fn main() {
                             },
                             track_event::Type::Instant => {
                                 println!("{} {:?} {} {}", track.tid, current_chrome_time, current_chrome_time, name.unwrap());
-
                             },
                             track_event::Type::SliceEnd => {
                                 if let Some((start_time, name)) = track.stack.pop() {
