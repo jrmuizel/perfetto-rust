@@ -66,7 +66,16 @@ fn main() {
                     }
                     // only compute the difference if we have both
                     if boot_time != 0 && mono_time != 0 {
-                        boot_to_mono = boot_time - mono_time;
+                        if boot_time < mono_time {
+                            // boot_time sometimes shows up as less than mono_time
+                            // this might be because we measure it first. Make sure
+                            // the difference between them is small and just '0'
+                            // as our conversion difference.
+                            assert!((mono_time - boot_time) < 1000);
+                            boot_to_mono = 0;   
+                        } else {
+                            boot_to_mono = mono_time - boot_time;
+                        }
                     }
                 },
                 FtraceEvents(ftrace_event_bundle) => {
