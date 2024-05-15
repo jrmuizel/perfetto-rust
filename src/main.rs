@@ -101,9 +101,13 @@ fn main() {
                     tracks.insert(uuid, Track { tid, stack: Vec::new()});
 
                 },
-                TrackEvent(track_event) => {
+                TrackEvent(track_event) => 'track_event: {
                     let mut track_uuid = default_track_uuid;
                     if let Some(uuid) = track_event.track_uuid {
+                        if uuid == 0 {
+                            // ignore global events for now
+                            break 'track_event;
+                        }
                         track_uuid = uuid;
                     }
                     if let Some(interned_data) = packet.interned_data {
