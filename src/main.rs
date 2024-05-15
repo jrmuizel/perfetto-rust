@@ -109,14 +109,28 @@ fn main() {
 
                 },
                 TrackEvent(track_event) => 'track_event: {
-                    let mut track_uuid = default_track_uuid;
-                    if let Some(uuid) = track_event.track_uuid {
+                    let track_uuid = if let Some(uuid) = track_event.track_uuid {
                         if uuid == 0 {
-                            // ignore global events for now
-                            break 'track_event;
+                            // if the track_uuid is 0, then we'll put this event in the track that matches trusted_pid
+                            if let Some(trusted_pid) = packet.trusted_pid {
+                                // find the track that corresponds to the trusted_pid
+                                if let Some((&uuid, _)) = tracks.iter().find(|(_, track)| track.tid == trusted_pid) {
+                                    uuid
+                                } else {
+                                    eprintln!("missing track for trusted_pid {}", trusted_pid);
+                                    break 'track_event;
+                                }
+                            } else {
+                                // otherwise drop the event
+                                break 'track_event;
+                            }
+                        } else {
+                             uuid
                         }
-                        track_uuid = uuid;
-                    }
+                    } else {
+                        default_track_uuid
+                    };
+
                     if let Some(interned_data) = packet.interned_data {
                         for name in interned_data.event_names {
                             event_names.insert(name.iid(), name.name().to_owned());
