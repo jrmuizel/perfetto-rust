@@ -97,6 +97,7 @@ fn main() {
                     if let Some(thread) = track_descriptor.thread {
                         tid = thread.tid.unwrap();
                     }
+                    // Perfetto seems to use the event name of the first event as the track name
                     tracks.insert(uuid, Track { tid, stack: Vec::new()});
 
                 },
