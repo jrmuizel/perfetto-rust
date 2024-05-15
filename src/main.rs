@@ -23,7 +23,7 @@ fn main() {
     let mut current_chrome_time = 0;
     let mut boot_to_mono = 0;
     let mut ftrace_thread_state = HashMap::new();
-    let mut tracks = HashMap::new();
+    let mut tracks: HashMap<u64, Track> = HashMap::new();
     let mut ftrace_events = Vec::new();
     let mut event_names = HashMap::new();
     let mut default_track_uuid = 0;
@@ -91,6 +91,13 @@ fn main() {
                     eprintln!("{:?}", track_descriptor);
                     let uuid = track_descriptor.uuid.unwrap();
                     let mut tid = 0;
+
+                    // start with the parent track tid if it exists
+                    if let Some(parent_uuid) = track_descriptor.parent_uuid {
+                        if let Some(parent) = tracks.get(&parent_uuid) {
+                            tid = parent.tid;
+                        }
+                    }
                     if let Some(process) = track_descriptor.process {
                         tid = process.pid.unwrap();
                     }
