@@ -26,7 +26,7 @@ fn main() {
     let mut tracks = HashMap::new();
     let mut ftrace_events = Vec::new();
     let mut event_names = HashMap::new();
-    let mut track_uuid = 0;
+    let mut default_track_uuid = 0;
     let mut first = true;
     
     for packet in trace.packet {
@@ -36,8 +36,8 @@ fn main() {
                 eprintln!("timestamp_clock_id: {:?}", timestamp_clock_id);
             }
             if let Some(track_event_defaults) = trace_packet_defaults.track_event_defaults {
-                if let Some(track_uuid_) = track_event_defaults.track_uuid {
-                    track_uuid = track_uuid_;
+                if let Some(track_uuid) = track_event_defaults.track_uuid {
+                    default_track_uuid = track_uuid;
                 }
             }
         }
@@ -102,6 +102,10 @@ fn main() {
 
                 },
                 TrackEvent(track_event) => {
+                    let mut track_uuid = default_track_uuid;
+                    if let Some(uuid) = track_event.track_uuid {
+                        track_uuid = uuid;
+                    }
                     if let Some(interned_data) = packet.interned_data {
                         for name in interned_data.event_names {
                             event_names.insert(name.iid(), name.name().to_owned());
