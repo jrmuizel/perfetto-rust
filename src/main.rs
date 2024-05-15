@@ -117,10 +117,11 @@ fn main() {
                                 if let Some((&uuid, _)) = tracks.iter().find(|(_, track)| track.tid == trusted_pid) {
                                     uuid
                                 } else {
-                                    eprintln!("missing track for trusted_pid {}", trusted_pid);
+                                    panic!("missing track for trusted_pid {}", trusted_pid);
                                     break 'track_event;
                                 }
                             } else {
+                                panic!("no track");
                                 // otherwise drop the event
                                 break 'track_event;
                             }
@@ -157,6 +158,26 @@ fn main() {
                                     println!("{} {:?} {} {}", track.tid, start_time, current_chrome_time, name);
                                 } else {
                                     eprintln!("missing start")
+                                }
+                            }
+                            track_event::Type::Unspecified => {
+                                if let Some(legacy_event) = track_event.legacy_event {
+                                    match legacy_event.phase.unwrap() as u8 as char {
+                                        'b' => {
+                                            track.stack.push((current_chrome_time, name.unwrap().to_owned()));
+                                        },
+                                        'e' => {
+                                            if let Some((start_time, name)) = track.stack.pop() {
+                                                println!("{} {:?} {} {}", track.tid, start_time, current_chrome_time, name);
+                                            } else {
+                                                eprintln!("missing start")
+                                            }
+                                        },
+                                        'n' => {
+                                            println!("{} {:?} {} {}", track.tid, current_chrome_time, current_chrome_time, name.unwrap());
+                                        }
+                                        _ => (),
+                                    }
                                 }
                             }
                             _ => (),
