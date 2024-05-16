@@ -8,7 +8,14 @@ use crate::perfetto::track_event::NameField;
 
 struct Track {
     tid: i32,
+    name: Option<String>,
     stack: Vec<(u64, String)>
+}
+
+impl Track {
+    fn output_marker(&self, start: u64, end: u64, value: &str) {
+        println!("{} {} {} {} {}", self.tid, self.name.as_deref().unwrap_or("More"), start, end, value);
+    }
 }
 fn main() {
 
@@ -105,7 +112,7 @@ fn main() {
                         tid = thread.tid.unwrap();
                     }
                     // Perfetto seems to use the event name of the first event as the track name
-                    tracks.insert(uuid, Track { tid, stack: Vec::new()});
+                    tracks.insert(uuid, Track { tid, name: None, stack: Vec::new()});
 
                 },
                 TrackEvent(track_event) => 'track_event: {
@@ -151,11 +158,11 @@ fn main() {
 
                             },
                             track_event::Type::Instant => {
-                                println!("{} {:?} {} {}", track.tid, current_chrome_time, current_chrome_time, name.unwrap());
+                                track.output_marker(current_chrome_time, current_chrome_time, name.unwrap());
                             },
                             track_event::Type::SliceEnd => {
                                 if let Some((start_time, name)) = track.stack.pop() {
-                                    println!("{} {:?} {} {}", track.tid, start_time, current_chrome_time, name);
+                                    track.output_marker(start_time, current_chrome_time, &name);
                                 } else {
                                     eprintln!("missing start")
                                 }
@@ -168,7 +175,7 @@ fn main() {
                                         },
                                         'e' => {
                                             if let Some((start_time, name)) = track.stack.pop() {
-                                                println!("{} {:?} {} {}", track.tid, start_time, current_chrome_time, name);
+                                                track.output_marker(start_time, current_chrome_time, &name);
                                             } else {
                                                 eprintln!("missing start")
                                             }
@@ -221,7 +228,7 @@ fn main() {
                             },
                             'E' => {
                                 if let Some((start, _, msg)) = state.pop() {
-                                    println!("{} {} {} {}", pid, start - boot_to_mono, timestamp - boot_to_mono, msg);
+                                    println!("{} ftrace {} {} {}", pid, start - boot_to_mono, timestamp - boot_to_mono, msg);
                                 } else {
                                     eprintln!("missing start for {}", timestamp)
                                 }
