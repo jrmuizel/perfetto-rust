@@ -181,7 +181,7 @@ fn main() {
                                             }
                                         },
                                         'n' => {
-                                            println!("{} {:?} {} {}", track.tid, current_chrome_time, current_chrome_time, name.unwrap());
+                                            track.output_marker(current_chrome_time, current_chrome_time, name.unwrap());
                                         }
                                         _ => (),
                                     }
