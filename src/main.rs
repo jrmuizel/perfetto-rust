@@ -14,7 +14,7 @@ struct Track {
 
 impl Track {
     fn output_marker(&self, start: u64, end: u64, value: &str) {
-        let name =  self.name.get_or_init(|| value.to_owned());
+        let name =  self.name.get_or_init(|| value.split_whitespace().next().unwrap().to_owned());
         println!("{} {} {} {} {}", self.tid, name, start, end, value);
     }
 }
