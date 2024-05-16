@@ -8,6 +8,7 @@ use crate::perfetto::track_event::NameField;
 
 struct Track {
     tid: i32,
+    has_parent: bool,
     name: OnceCell<String>,
     stack: Vec<(u64, String)>
 }
@@ -117,7 +118,7 @@ fn main() {
                         name.set("Thread".to_owned());
                     }
                     // Perfetto seems to use the event name of the first event as the track name
-                    tracks.insert(uuid, Track { tid, name, stack: Vec::new()});
+                    tracks.insert(uuid, Track { tid, name, has_parent: track_descriptor.parent_uuid.is_some(), stack: Vec::new()});
 
                 },
                 TrackEvent(track_event) => 'track_event: {
@@ -125,8 +126,8 @@ fn main() {
                         if uuid == 0 {
                             // if the track_uuid is 0, then we'll put this event in the track that matches trusted_pid
                             if let Some(trusted_pid) = packet.trusted_pid {
-                                // find the track that corresponds to the trusted_pid
-                                if let Some((&uuid, _)) = tracks.iter().find(|(_, track)| track.tid == trusted_pid) {
+                                // find the track that corresponds to the trusted_pid and has no parent
+                                if let Some((&uuid, _)) = tracks.iter().find(|(_, track)| track.tid == trusted_pid && !track.has_parent) {
                                     uuid
                                 } else {
                                     panic!("missing track for trusted_pid {}", trusted_pid);
