@@ -159,6 +159,9 @@ fn main() {
                         let track = tracks.get_mut(&track_uuid).unwrap();
                         match track_event.r#type() {
                             track_event::Type::SliceBegin => {
+                                // initialize the track name if it hasn't already been set
+                                track.name.get_or_init(|| name.unwrap().split_whitespace().next().unwrap().to_owned());
+
                                 track.stack.push((current_chrome_time, name.unwrap().to_owned()));
                                 //println!("{} Begin {:?} {:?}", track.tid, current_chrome_time, name.unwrap());
 
