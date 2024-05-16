@@ -1,4 +1,4 @@
-use std::{collections::{hash_map::Entry, HashMap}, env, fs::File, io::{Read, Result}};
+use std::{cell::OnceCell, collections::{hash_map::Entry, HashMap}, env, fs::File, io::{Read, Result}};
 mod perfetto;
 use perfetto::{ftrace_event::Event, trace_packet, track_event, Trace, TracePacketDefaults};
 use prost::Message;
@@ -8,13 +8,14 @@ use crate::perfetto::track_event::NameField;
 
 struct Track {
     tid: i32,
-    name: Option<String>,
+    name: OnceCell<String>,
     stack: Vec<(u64, String)>
 }
 
 impl Track {
     fn output_marker(&self, start: u64, end: u64, value: &str) {
-        println!("{} {} {} {} {}", self.tid, self.name.as_deref().unwrap_or("More"), start, end, value);
+        let name =  self.name.get_or_init(|| value.to_owned());
+        println!("{} {} {} {} {}", self.tid, name, start, end, value);
     }
 }
 fn main() {
@@ -105,14 +106,18 @@ fn main() {
                             tid = parent.tid;
                         }
                     }
+                    let mut name = OnceCell::new();
                     if let Some(process) = track_descriptor.process {
                         tid = process.pid.unwrap();
+                        name.set("Process".to_owned());
+
                     }
                     if let Some(thread) = track_descriptor.thread {
                         tid = thread.tid.unwrap();
+                        name.set("Thread".to_owned());
                     }
                     // Perfetto seems to use the event name of the first event as the track name
-                    tracks.insert(uuid, Track { tid, name: None, stack: Vec::new()});
+                    tracks.insert(uuid, Track { tid, name, stack: Vec::new()});
 
                 },
                 TrackEvent(track_event) => 'track_event: {
