@@ -37,11 +37,14 @@ fn main() {
     let mut event_names = HashMap::new();
     let mut default_track_uuid = 0;
     let mut first = true;
-    
+    let default_trace_clock_id = 6;
+    let mut default_timestamp_clock_id = None;
+
     for packet in trace.packet {
         if let Some(trace_packet_defaults) = packet.trace_packet_defaults {
             if let Some(timestamp_clock_id) = trace_packet_defaults.timestamp_clock_id {
                 assert_eq!(timestamp_clock_id, 64);
+                default_timestamp_clock_id = Some(timestamp_clock_id);
                 eprintln!("timestamp_clock_id: {:?}", timestamp_clock_id);
             }
             if let Some(track_event_defaults) = trace_packet_defaults.track_event_defaults {
@@ -52,7 +55,10 @@ fn main() {
         }
         if let Some(data) = packet.data {
             if let Some(timestamp) = packet.timestamp {
-                current_chrome_time += timestamp;
+                let clock_id = packet.timestamp_clock_id.or(default_timestamp_clock_id).unwrap_or(default_trace_clock_id);
+                if clock_id == 64 {
+                    current_chrome_time += timestamp;
+                }
             }
             match data {
                 ClockSnapshot(clock_snapshot) => {
@@ -151,6 +157,15 @@ fn main() {
                         }
                     }
                     if let Some(timestamp) = packet.timestamp {
+                        // if the timestamp_clock_id is 64, then we'll use the incremental current_chrome_time
+                        let clock_id = packet.timestamp_clock_id.or(default_timestamp_clock_id).unwrap_or(default_trace_clock_id);
+                        let timestamp = if clock_id == 64 {
+                            current_chrome_time
+                        } else if clock_id == 3 {
+                            timestamp
+                        } else {
+                            panic!("unexpected clock_id {}", clock_id);
+                        };
                         let name = match &track_event.name_field {
                             Some(NameField::NameIid(iid)) => Some(event_names[iid].as_str()),
                             Some(NameField::Name(name)) => Some(name.as_str()),
@@ -162,16 +177,16 @@ fn main() {
                                 // initialize the track name if it hasn't already been set
                                 track.name.get_or_init(|| name.unwrap().split_whitespace().next().unwrap().to_owned());
 
-                                track.stack.push((current_chrome_time, name.unwrap().to_owned()));
+                                track.stack.push((timestamp, name.unwrap().to_owned()));
                                 //println!("{} Begin {:?} {:?}", track.tid, current_chrome_time, name.unwrap());
 
                             },
                             track_event::Type::Instant => {
-                                track.output_marker(current_chrome_time, current_chrome_time, name.unwrap());
+                                track.output_marker(timestamp, timestamp, name.unwrap());
                             },
                             track_event::Type::SliceEnd => {
                                 if let Some((start_time, name)) = track.stack.pop() {
-                                    track.output_marker(start_time, current_chrome_time, &name);
+                                    track.output_marker(start_time, timestamp, &name);
                                 } else {
                                     eprintln!("missing start")
                                 }
@@ -180,17 +195,17 @@ fn main() {
                                 if let Some(legacy_event) = track_event.legacy_event {
                                     match legacy_event.phase.unwrap() as u8 as char {
                                         'b' => {
-                                            track.stack.push((current_chrome_time, name.unwrap().to_owned()));
+                                            track.stack.push((timestamp, name.unwrap().to_owned()));
                                         },
                                         'e' => {
                                             if let Some((start_time, name)) = track.stack.pop() {
-                                                track.output_marker(start_time, current_chrome_time, &name);
+                                                track.output_marker(start_time, timestamp, &name);
                                             } else {
                                                 eprintln!("missing start")
                                             }
                                         },
                                         'n' => {
-                                            track.output_marker(current_chrome_time, current_chrome_time, name.unwrap());
+                                            track.output_marker(timestamp, timestamp, name.unwrap());
                                         }
                                         _ => (),
                                     }
