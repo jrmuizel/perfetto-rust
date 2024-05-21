@@ -83,7 +83,7 @@ fn main() {
                             assert!((mono_time - boot_time) < 1000);
                             boot_to_mono = 0;   
                         } else {
-                            boot_to_mono = mono_time - boot_time;
+                            boot_to_mono = boot_time - mono_time;
                         }
                     }
                 },
